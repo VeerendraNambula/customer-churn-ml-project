@@ -41,6 +41,9 @@ def prepare_input(input_csv: str):
 def main(input_csv: str, output_csv: str):
     model = load_model()
     X_new = prepare_input(input_csv)
+    # Preserve the exact feature order and columns used during training.
+    if hasattr(model, "feature_names_in_"):
+        X_new = X_new.reindex(columns=model.feature_names_in_, fill_value=0)
     probs = model.predict_proba(X_new)[:, 1]
     preds = (probs >= 0.5).astype(int)
 

@@ -30,7 +30,7 @@ def prepare_input(input_csv: str, feature_columns=None):
     for col in df.select_dtypes(include="object").columns:
         df[col] = df[col].str.strip()
 
-    encoded = pd.get_dummies(df, drop_first=True, dtype=int)
+    encoded = pd.get_dummies(df, drop_first=False, dtype=int)
     if feature_columns is not None:
         encoded = encoded.reindex(columns=feature_columns, fill_value=0)
     return encoded

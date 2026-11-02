@@ -1,63 +1,57 @@
 import argparse
-import pandas as pd
+from pathlib import Path
+
 import joblib
-from preprocess import load_and_clean_data, encode_features
+import pandas as pd
 
-MODEL_PATH = "models/logreg.pkl"
+try:
+    from .preprocess import DATA_PATH, load_and_clean_data
+except ImportError:  # Support running as: python src/predict.py
+    from preprocess import DATA_PATH, load_and_clean_data
 
-def load_model(path: str = MODEL_PATH):
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+MODEL_PATH = PROJECT_ROOT / "models" / "logreg.pkl"
+
+
+def load_model(path=MODEL_PATH):
     return joblib.load(path)
 
-def prepare_input(input_csv: str):
-    # Load original full data to get structure
-    df_full = load_and_clean_data()
-    if "Churn" in df_full.columns:
-        df_full = df_full.drop(columns=["Churn"])
 
-    # Load new customers
-    df_new = pd.read_csv(input_csv)
-    
-    if "customerID" in df_new.columns:
-        df_new = df_new.drop(columns=["customerID"])
-        
-    # Convert TotalCharges to numeric, fill NaNs with 0 to prevent dropping predictive rows
-    df_new["TotalCharges"] = pd.to_numeric(df_new["TotalCharges"], errors="coerce").fillna(0)
-    for col in df_new.select_dtypes(include="object").columns:
-        df_new[col] = df_new[col].str.strip()
+def prepare_input(input_csv: str, feature_columns=None):
+    df = pd.read_csv(input_csv)
+    if "Churn" in df.columns:
+        df = df.drop(columns=["Churn"])
+    if "customerID" in df.columns:
+        df = df.drop(columns=["customerID"])
 
-    # Merge to align dummies seamlessly
-    df_new["_is_new"] = 1
-    df_concat = pd.concat([df_full, df_new], ignore_index=True)
+    if "TotalCharges" in df.columns:
+        df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce").fillna(0)
 
-    # One-hot encoding
-    X_encoded = pd.get_dummies(df_concat, drop_first=True)
+    for col in df.select_dtypes(include="object").columns:
+        df[col] = df[col].str.strip()
 
-    # Filter back out the new instances & drop helper column
-    X_new = X_encoded[X_encoded["_is_new"] == 1].copy()
-    X_new = X_new.drop(columns=["_is_new"])
+    encoded = pd.get_dummies(df, drop_first=True, dtype=int)
+    if feature_columns is not None:
+        encoded = encoded.reindex(columns=feature_columns, fill_value=0)
+    return encoded
 
-    return X_new
 
 def main(input_csv: str, output_csv: str):
     model = load_model()
-    X_new = prepare_input(input_csv)
-    # Preserve the exact feature order and columns used during training.
-    if hasattr(model, "feature_names_in_"):
-        X_new = X_new.reindex(columns=model.feature_names_in_, fill_value=0)
-    probs = model.predict_proba(X_new)[:, 1]
-    preds = (probs >= 0.5).astype(int)
+    X_new = prepare_input(input_csv, getattr(model, "feature_names_in_", None))
+    probabilities = model.predict_proba(X_new)[:, 1]
+    predictions = (probabilities >= 0.5).astype(int)
 
-    out = pd.read_csv(input_csv).copy()
-    out["churn_probability"] = probs
-    out["churn_predicted"] = preds
-
-    out.to_csv(output_csv, index=False)
+    output = pd.read_csv(input_csv).copy()
+    output["churn_probability"] = probabilities
+    output["churn_predicted"] = predictions
+    output.to_csv(output_csv, index=False)
     print(f"Saved predictions to {output_csv}")
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--input", required=True, help="Path to CSV with new customers")
-    parser.add_argument("--output", required=True, help="Path to save predictions CSV")
-    args = parser.parse_args()
 
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Score new telecom customers for churn risk.")
+    parser.add_argument("--input", required=True, help="CSV containing customer feature columns")
+    parser.add_argument("--output", required=True, help="Destination CSV for predictions")
+    args = parser.parse_args()
     main(args.input, args.output)

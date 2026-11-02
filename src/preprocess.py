@@ -1,49 +1,47 @@
+from pathlib import Path
+
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-DATA_PATH = "data/telco_churn.csv"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DATA_PATH = PROJECT_ROOT / "data" / "telco_churn.csv"
 
-def load_and_clean_data(path: str = DATA_PATH) -> pd.DataFrame:
+
+def load_and_clean_data(path=DATA_PATH) -> pd.DataFrame:
     df = pd.read_csv(path)
+    if "customerID" in df.columns:
+        df = df.drop(columns=["customerID"])
 
-    # Drop customerID (identifier, not a feature)
-    df = df.drop(columns=["customerID"])
+    if "TotalCharges" in df.columns:
+        df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce")
+        df = df.dropna(subset=["TotalCharges"])
 
-    # Fix TotalCharges type
-    df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce")
-    df = df.dropna(subset=["TotalCharges"])
-
-    # Strip spaces in categorical columns just in case
     for col in df.select_dtypes(include="object").columns:
         df[col] = df[col].str.strip()
-
     return df
 
 
 def encode_features(df: pd.DataFrame):
-    # Target
+    if "Churn" not in df.columns:
+        raise ValueError("Training data must contain a 'Churn' target column.")
+
     y = df["Churn"].map({"No": 0, "Yes": 1})
+    if y.isna().any():
+        invalid = sorted(df.loc[y.isna(), "Churn"].dropna().astype(str).unique())
+        raise ValueError(f"Unexpected Churn labels: {invalid}")
 
-    # Features
     X = df.drop(columns=["Churn"])
-
-    # One‑hot encode all categorical columns (drop_first to reduce multicollinearity)
-    X_encoded = pd.get_dummies(X, drop_first=True)
-
-    return X_encoded, y
+    return pd.get_dummies(X, drop_first=True, dtype=int), y.astype(int)
 
 
 def train_test_split_data(X, y, test_size=0.2, random_state=42):
-    X_train, X_test, y_train, y_test = train_test_split(
+    return train_test_split(
         X, y, test_size=test_size, random_state=random_state, stratify=y
     )
-    return X_train, X_test, y_train, y_test
 
 
-def get_preprocessed_data(path: str = DATA_PATH):
-    df = load_and_clean_data(path)
-    X, y = encode_features(df)
-    return train_test_split_data(X, y)
+def get_preprocessed_data(path=DATA_PATH):
+    return train_test_split_data(*encode_features(load_and_clean_data(path)))
 
 
 if __name__ == "__main__":

@@ -1,106 +1,107 @@
-# Customer Churn Prediction – Telco
+# Customer Churn Prediction
 
-## 1. Business Problem
+A Python machine-learning project that analyzes telecom customer data and trains classification models to estimate whether a customer is likely to churn.
 
-A telecom company is experiencing customer churn and wants to identify which active customers are most likely to leave soon.  
-By predicting churn, the business can target at-risk customers with retention offers (discounts, better support, personalized plans) and reduce revenue loss. [web:14][web:25]
+## Problem
 
-## 2. Project Objective
+Customer churn affects recurring revenue. Identifying customers with a higher likelihood of leaving can help a business prioritize retention efforts.
 
-- Build a machine learning model that predicts whether a customer will churn (Yes/No).
-- Achieve at least:
-  - AUC-ROC ≥ 0.80 on the test set.
-  - Recall for churned customers ≥ 0.70.
-- Deliver:
-  - Reusable data preprocessing pipeline.
-  - Trained model artifact.
-  - Simple interface (script or API) for scoring new customers.
-  - A short report for business stakeholders explaining insights and recommendations.
+## Project workflow
 
-## 3. Dataset
+1. Explore the telecom dataset and inspect missing values, duplicates, and churn distribution.
+2. Clean the data, convert `TotalCharges` to numeric, and remove rows that cannot be used.
+3. Encode categorical features with one-hot encoding.
+4. Create a stratified train/test split.
+5. Train and evaluate Logistic Regression and Random Forest classifiers.
+6. Save trained models and generate churn probabilities for new customer records.
 
-- Source: Telco Customer Churn dataset (Kaggle). [web:14][web:15]
-- Each row represents a customer; each column contains customer attributes such as:
-  - Demographics: gender, senior citizen, tenure. [web:21][web:25]
-  - Services: phone service, multiple lines, internet, online security, streaming, etc. [web:14][web:25]
-  - Account and billing: contract type, paperless billing, payment method, monthly charges, total charges. [web:15][web:27]
-  - Target variable: `Churn` (Yes = customer left, No = customer stayed). [web:14][web:21]
+## Technology stack
 
-## 4. Requirements, Assumptions, Constraints
+- Python
+- Pandas and NumPy
+- scikit-learn
+- Matplotlib and Seaborn
+- Joblib
 
-### 4.1 Requirements
-- Historical labeled data with churn information.
-- Tools:
-  - Python 3.10+ (Pandas, NumPy, scikit-learn, Matplotlib/Seaborn).
-  - SQL database (optional; e.g., SQLite/PostgreSQL for practice).
-  - Jupyter Notebook for exploration.
-
-### 4.2 Assumptions
-- The churn labels in the dataset are correct and reflect actual customer behavior. [web:21]
-- The relationships in this dataset are representative of real-world telco customers.
-- All input features used at training time are available at prediction time.
-
-### 4.3 Constraints
-- Dataset is limited to one company/time period and may not generalize to all telcos. [web:25]
-- No real-time streaming data in this project (batch scoring only).
-- Single-node, local training (no distributed training).
-
-## 5. Project Structure
+## Repository structure
 
 ```text
 customer-churn-ml-project/
-│
-├─ data/
-│  └─ telco_churn.csv          # Kaggle dataset (not tracked in git ideally)
-│
-├─ notebooks/
-│  ├─ 01_eda.ipynb             # Data exploration & quality checks
-│  └─ 02_modeling.ipynb        # Feature engineering & model training
-│
-├─ src/
-│  ├─ preprocess.py            # Cleaning, encoding, train/test split
-│  ├─ train_model.py           # Training & saving models
-│  └─ predict.py               # Loading model & predicting churn
-│
-├─ reports/
-│  └─ project_report.md        # Business objectives, risks, results
-│
-├─ README.md                   # Overview, objectives, setup, usage
-└─ requirements.txt            # Python dependencies
+├── data/
+│   └── telco_churn.csv       # Download separately; not included in this repository
+├── reports/
+│   └── project_report.md
+├── src/
+│   ├── eda.py
+│   ├── preprocess.py
+│   ├── train_model.py
+│   └── predict.py
+├── requirements.txt
+└── README.md
 ```
 
-## 6. How to Run (placeholder)
+## Dataset
 
-1. Create virtual environment and install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-2. Run notebooks in order:
-   - `notebooks/01_eda.ipynb`
-   - `notebooks/02_modeling.ipynb`
-3. Train and save model:
-   ```bash
-   python src/train_model.py
-   ```
-4. Score new customers:
-   ```bash
-   python src/predict.py --input path/to/customers.csv --output predictions.csv
-   ```
+The code expects the Telco Customer Churn CSV at:
 
-## 7. Risks, Assumptions, and Constraints (Business View)
+```text
+data/telco_churn.csv
+```
 
-| Type        | Item                                  | Description |
-|------------|----------------------------------------|-------------|
-| Assumption | Accurate labels                        | Churn flag reflects whether the customer really left. [web:21] |
-| Assumption | Stable data                            | Feature distributions do not change drastically in short term. |
-| Constraint | Limited history                        | Dataset covers a single telco and limited time period. [web:25] |
-| Risk       | Model overfitting                      | Model may perform well on this dataset but poorly in production. |
-| Risk       | Actionability                          | Business might not act on predictions, limiting impact. |
-| Risk       | Data drift                             | Over time, customer behavior may change, degrading performance. |
+Download the dataset from [Kaggle – Telco Customer Churn](https://www.kaggle.com/datasets/blastchar/telco-customer-churn), create the `data/` directory, and place the CSV there. The dataset is not bundled with this repository.
 
-## 8. Next Steps
+## Setup
 
-- Perform EDA and data quality checks in `01_eda.ipynb`.
-- Engineer features and train multiple models in `02_modeling.ipynb`.
-- Create a simple CLI/API in `src/` for scoring.
-- Write `reports/project_report.md` as a non-technical summary for stakeholders.
+Use Python 3.10 or later:
+
+```bash
+python -m venv .venv
+```
+
+Activate the environment, then install dependencies:
+
+```bash
+# Windows
+.venv\Scripts\activate
+
+# macOS / Linux
+source .venv/bin/activate
+
+pip install -r requirements.txt
+```
+
+## Run the project
+
+### Exploratory data analysis
+
+```bash
+python src/eda.py
+```
+
+### Train and evaluate models
+
+```bash
+python src/train_model.py
+```
+
+The training script evaluates Logistic Regression and Random Forest and saves model artifacts under `models/`. The prediction script currently loads the Logistic Regression artifact.
+
+### Predict churn for new customers
+
+Prepare a CSV with the same input feature columns as the training dataset, then run:
+
+```bash
+python src/predict.py --input path/to/new_customers.csv --output predictions.csv
+```
+
+The output includes a churn probability and a binary prediction.
+
+## Evaluation
+
+The training script prints a classification report and ROC-AUC for each model. Actual evaluation results depend on the dataset and should be generated by running the training workflow; no benchmark score is claimed here.
+
+## Limitations
+
+- The model is trained on a single public telecom dataset and may not generalize to other businesses.
+- The workflow is batch-oriented; it is not a real-time scoring service.
+- Model performance and prediction thresholds should be validated before operational use.

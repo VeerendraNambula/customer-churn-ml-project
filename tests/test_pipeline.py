@@ -42,7 +42,7 @@ def test_prepare_input_aligns_to_training_features_without_training_csv(tmp_path
     pd.DataFrame({
         "customerID": ["new-1"],
         "TotalCharges": ["12.50"],
-        "Contract": ["Month-to-month"],
+        "Contract": ["One year"],
         "InternetService": ["Fiber optic"],
     }).to_csv(path, index=False)
 
@@ -50,4 +50,4 @@ def test_prepare_input_aligns_to_training_features_without_training_csv(tmp_path
     assert result.columns.tolist() == [
         "TotalCharges", "Contract_One year", "InternetService_No"
     ]
-    assert result.iloc[0].tolist() == [12.5, 0, 0]
+    assert result.iloc[0].tolist() == [12.5, 1, 0]

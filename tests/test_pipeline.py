@@ -51,3 +51,25 @@ def test_prepare_input_aligns_to_training_features_without_training_csv(tmp_path
         "TotalCharges", "Contract_One year", "InternetService_No"
     ]
     assert result.iloc[0].tolist() == [12.5, 1, 0]
+
+
+
+def test_logistic_regression_uses_scaling_and_supports_prediction():
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import StandardScaler
+
+    from src.train_model import train_logistic_regression
+
+    X_train = pd.DataFrame({
+        "monthly_charges": [20, 30, 40, 50, 60, 70, 80, 90],
+        "tenure": [1, 2, 3, 4, 8, 9, 10, 12],
+    })
+    y_train = pd.Series([0, 0, 0, 0, 1, 1, 1, 1])
+
+    model = train_logistic_regression(X_train, y_train)
+
+    assert isinstance(model, Pipeline)
+    assert isinstance(model.named_steps["scaler"], StandardScaler)
+    assert model.feature_names_in_.tolist() == X_train.columns.tolist()
+    assert model.predict(X_train).shape == (len(X_train),)
+    assert model.predict_proba(X_train).shape == (len(X_train), 2)

@@ -4,6 +4,8 @@ import joblib
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, roc_auc_score
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 try:
     from .preprocess import get_preprocessed_data
@@ -16,7 +18,21 @@ RF_PATH = MODEL_DIR / "random_forest.pkl"
 
 
 def train_logistic_regression(X_train, y_train):
-    model = LogisticRegression(max_iter=1000, class_weight="balanced")
+    """Train a scaled logistic-regression pipeline.
+
+    Scaling is important for distance/gradient-based optimisation when input
+    features have very different numeric ranges. Keeping the scaler inside the
+    pipeline ensures inference applies the exact same transformation.
+    """
+    model = Pipeline(
+        steps=[
+            ("scaler", StandardScaler()),
+            (
+                "classifier",
+                LogisticRegression(max_iter=1000, class_weight="balanced"),
+            ),
+        ]
+    )
     return model.fit(X_train, y_train)
 
 
